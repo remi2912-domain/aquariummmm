@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ká</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden; /* Không hiện thanh cuộn */
+            
+            /* --- CẤU HÌNH NỀN MỚI --- */
+            /* Nhớ copy file 'bể cá.jpg' vào cùng thư mục nhé */
+            background-image: url('bể cá.jpg'); 
+            background-size: cover;      /* Phủ kín màn hình */
+            background-position: center; /* Căn giữa ảnh */
+            background-repeat: no-repeat;/* Không lặp lại */
+            /* ------------------------ */
+            
+            height: 100vh; /* Đảm bảo chiều cao body phủ hết màn hình */
+            width: 100vw;
+        }
+        canvas {
+            display: block;
+            position: absolute; /* Đặt canvas nằm đè lên trên ảnh nền */
+            top: 0;
+            left: 0;
+        }
+        .instruction {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px #000000; /* Thêm bóng chữ cho dễ đọc trên nền ảnh */
+            pointer-events: none;
+            background: rgba(0,0,0,0.4); /* Nền mờ cho chữ dễ nhìn hơn */
+            padding: 15px;
+            border-radius: 10px;
+            z-index: 10; /* Đảm bảo chữ luôn nổi lên trên cùng */
+        }
+    </style>
+</head>
+<body>
+
+    <div class="instruction">KYOU IKKI TENKAI</div>
+    <canvas id="aquariumCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('aquariumCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+
+        // DANH SÁCH TÊN FILE CÁ (Đảm bảo file nằm cùng thư mục)
+        const fishLinks = [
+            'clown_fish-removebg-preview.png',
+            'axolotl-removebg-preview.png',
+            'ca_nhiet_doi-removebg-preview.png',
+            'puffer-removebg-preview.png'
+        ];
+
+        const fishImages = [];
+        let imagesLoaded = 0;
+
+        // Hàm kiểm tra xem tất cả ảnh đã tải xong chưa
+        function checkAllImagesLoaded() {
+            imagesLoaded++;
+            if (imagesLoaded === fishLinks.length) {
+                animate(); // Chỉ bắt đầu chạy khi đã tải hết ảnh cá
+            }
+        }
+
+        fishLinks.forEach(link => {
+            const img = new Image();
+            img.src = link;
+            img.onload = checkAllImagesLoaded; // Gọi hàm kiểm tra khi ảnh tải xong
+            fishImages.push(img);
+        });
+
+        let fishes = [];
+
+        class Fish {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.size = Math.random() * 40 + 30; 
+                this.speedX = (Math.random() - 0.5) * 3; // Giảm tốc độ lại xíu cho thật
+                this.speedY = (Math.random() - 0.5) * 1.5;
+                
+                // Chọn ngẫu nhiên 1 ảnh nếu mảng ảnh đã có dữ liệu
+                if (fishImages.length > 0) {
+                    const randomIndex = Math.floor(Math.random() * fishImages.length);
+                    this.image = fishImages[randomIndex];
+                }
+            }
+
+            draw() {
+                // Nếu ảnh chưa tải kịp thì không vẽ để tránh lỗi
+                if (!this.image) return; 
+
+                ctx.save(); 
+                ctx.translate(this.x, this.y);
+                // Lật ảnh nếu bơi sang trái
+                if (this.speedX < 0) {
+                    ctx.scale(-1, 1); 
+                }
+                // Vẽ bóng mờ của cá xuống đáy bể (tạo chiều sâu)
+                ctx.shadowColor = "rgba(0,0,0,0.3)";
+                ctx.shadowBlur = 10;
+                ctx.shadowOffsetY = 20;
+
+                ctx.drawImage(this.image, -this.size, -this.size, this.size * 2, this.size * 2);
+                ctx.restore();
+            }
+
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+
+                // Chạm tường thì bật lại
+                if (this.x + this.size > canvas.width || this.x - this.size < 0) {
+                    this.speedX = -this.speedX;
+                }
+                // Chạm nóc hoặc đáy thì bật lại
+                if (this.y + this.size > canvas.height || this.y - this.size < 0) {
+                    this.speedY = -this.speedY;
+                }
+            }
+        }
+
+        window.addEventListener('click', (event) => {
+            // Chỉ cho phép tạo cá khi ảnh đã tải xong
+            if (fishImages.length === fishLinks.length) {
+                 fishes.push(new Fish(event.clientX, event.clientY));
+            }
+        });
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            fishes.forEach(fish => {
+                fish.update();
+                fish.draw();
+            });
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+    </script>
+</body>
+</html>
